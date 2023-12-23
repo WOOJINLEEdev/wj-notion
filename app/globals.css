@@ -18,10 +18,28 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
+  /* background: linear-gradient(
       to bottom,
       transparent,
       rgb(var(--background-end-rgb))
     )
-    rgb(var(--background-start-rgb));
+    rgb(var(--background-start-rgb)); */
+}
+
+[contenteditable="true"]:empty:before {
+  content: attr(data-text);
+  color: rgb(128, 128, 128);
+  padding: 4px 0;
+  outline: none;
+}
+
+[contenteditable="true"]:focus-visible {
+  outline: none;
+}
+
+.content-header[contenteditable="true"]:empty:before {
+  content: attr(data-text);
+  font-size: 36px;
+  color: rgb(128, 128, 128);
+  padding: 4px 0;
 }
