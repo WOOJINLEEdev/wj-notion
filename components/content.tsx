@@ -6,12 +6,12 @@ const Content = () => {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const { getCurrentPage, editPage } = usePageListStore();
+  const { pageId, getCurrentPage, editPage } = usePageListStore();
   const currentPage = getCurrentPage();
 
   useEffect(() => {
     focusContentEditableTextToEnd(titleRef?.current as HTMLElement);
-  }, [currentPage]);
+  }, [pageId]);
 
   const handleInputChange = (e: ChangeEvent<HTMLElement>, field: string) => {
     editPage({
