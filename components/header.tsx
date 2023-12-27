@@ -12,25 +12,25 @@ const Header = () => {
       <div className="relative flex">
         <div
           className={`group/menu relative flex items-center justify-center w-12 h-12 ${
-            isOpen ? "invisible" : "visible"
+            isOpen ? "invisible" : "delay-300 visible"
           }`}
         >
-          <div
-            role="button"
+          <button
+            type="button"
             className="absolute top-4 left-4 transition ease-in-out delay-150 group-hover/menu:invisible"
           >
             <Bars3Icon className="w-4 h-4" />
-          </div>
+          </button>
 
           <div className="group/sidebar invisible transition-opacity group-hover/menu:visible">
-            <div
-              role="button"
+            <button
+              type="button"
               aria-label="사이드바 열기"
               className="w-6 h-6 p-1 group-hover/sidebar:bg-gray-200 group-hover/sidebar:rounded-md"
               onClick={open}
             >
               <ChevronDoubleRightIcon className="w-full h-full" />
-            </div>
+            </button>
 
             <div className="absolute top-3 left-10 min-w-[95px] p-1 px-2 bg-gray-950 text-xs text-gray-300 font-semibold rounded-md shadow-sm invisible group-hover/sidebar:visible">
               <p>사이드바 열기</p>

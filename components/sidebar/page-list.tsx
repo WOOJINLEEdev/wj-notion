@@ -8,7 +8,10 @@ const PageList = () => {
   const { pageList, pageId, deletePage, initPageId, setPageId } =
     usePageListStore();
 
-  const handlePageDelete = (e: MouseEvent<HTMLDivElement>, pageId: string) => {
+  const handlePageDelete = (
+    e: MouseEvent<HTMLButtonElement>,
+    pageId: string
+  ) => {
     e.stopPropagation();
     deletePage(pageId);
     initPageId();
@@ -22,7 +25,8 @@ const PageList = () => {
     <ul>
       {pageList.map((page) => {
         return (
-          <div
+          <li
+            role="none"
             key={`page_${page.id}`}
             className={`relative py-1 text-[14px] cursor-pointer rounded-md group/item hover:rounded-md hover:bg-[rgba(55,53,47,0.08)] ${
               page.id === pageId ? "bg-[rgba(0,0,0,0.12)]" : ""
@@ -36,14 +40,14 @@ const PageList = () => {
               </div>
             </div>
 
-            <div
-              role="button"
+            <button
+              type="button"
               className="absolute top-[6px] right-1 flex items-center justify-center w-5 h-5 invisible group-hover/item:visible"
               onClick={(e) => handlePageDelete(e, page.id)}
             >
               <TrashIcon width="16" height="16" />
-            </div>
-          </div>
+            </button>
+          </li>
         );
       })}
     </ul>
