@@ -1,4 +1,4 @@
-import { MouseEvent } from "react";
+import { KeyboardEvent, MouseEvent } from "react";
 import { ChevronRightIcon } from "@heroicons/react/20/solid";
 import { TrashIcon } from "@heroicons/react/24/outline";
 
@@ -21,6 +21,18 @@ const PageList = () => {
     setPageId(pageId);
   };
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLLIElement>, pageId: string) => {
+    switch (e.key) {
+      case "Enter":
+        e.preventDefault();
+        handlePageSelect(pageId);
+        break;
+
+      default:
+        break;
+    }
+  };
+
   return (
     <ul>
       {pageList.map((page) => {
@@ -28,10 +40,12 @@ const PageList = () => {
           <li
             role="none"
             key={`page_${page.id}`}
+            tabIndex={0}
             className={`relative py-1 text-[14px] cursor-pointer rounded-md group/item hover:rounded-md hover:bg-[rgba(55,53,47,0.08)] ${
               page.id === pageId ? "bg-[rgba(0,0,0,0.12)]" : ""
             }`}
             onClick={() => handlePageSelect(page.id)}
+            onKeyDown={(e) => handleKeyDown(e, page.id)}
           >
             <div className="flex items-center gap-x-2 h-[24px]">
               <ChevronRightIcon width="24" height="24" />
