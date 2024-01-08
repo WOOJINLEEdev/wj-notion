@@ -28,8 +28,9 @@ body {
 
 [contenteditable="true"]:empty:before {
   content: attr(data-text);
-  color: rgb(128, 128, 128);
   padding: 4px 0;
+  color: rgb(215, 215, 215);
+  font-weight: bold;
   outline: none;
 }
 
@@ -39,7 +40,7 @@ body {
 
 .content-header[contenteditable="true"]:empty:before {
   content: attr(data-text);
-  font-size: 36px;
-  color: rgb(128, 128, 128);
   padding: 4px 0;
+  color: rgb(215, 215, 215);
+  font-size: 36px;
 }
