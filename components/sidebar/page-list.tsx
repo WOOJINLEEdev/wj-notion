@@ -3,10 +3,12 @@ import { ChevronRightIcon } from "@heroicons/react/20/solid";
 import { TrashIcon } from "@heroicons/react/24/outline";
 
 import usePageListStore from "@/state/use-page-list-store";
+import useSnackbarStore from "@/state/use-snackbar-store";
 
 const PageList = () => {
   const { pageList, pageId, deletePage, initPageId, setPageId } =
     usePageListStore();
+  const { show, hidden } = useSnackbarStore();
 
   const handlePageDelete = (
     e: MouseEvent<HTMLButtonElement>,
@@ -15,6 +17,11 @@ const PageList = () => {
     e.stopPropagation();
     deletePage(pageId);
     initPageId();
+    show();
+
+    setTimeout(() => {
+      hidden();
+    }, 3000);
   };
 
   const handlePageSelect = (pageId: string) => {

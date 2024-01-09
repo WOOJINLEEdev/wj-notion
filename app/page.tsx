@@ -4,12 +4,15 @@ import { useEffect } from "react";
 
 import Header from "@/components/header";
 import Content from "@/components/content";
+import Snackbar from "@/components/snackbar";
 import usePageListStore from "@/state/use-page-list-store";
 import useSideBarStore from "@/state/use-side-bar-store";
+import useSnackbarStore from "@/state/use-snackbar-store";
 
 export default function Home() {
   const { isOpen, toggle } = useSideBarStore();
   const { pageList, pageId } = usePageListStore();
+  const { isShow } = useSnackbarStore();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -35,6 +38,7 @@ export default function Home() {
       <main className="relative flex min-h-screen justify-center">
         {pageList?.length > 0 && pageId && <Content />}
       </main>
+      {isShow && <Snackbar message="삭제되었습니다." type="success" />}
     </div>
   );
 }
