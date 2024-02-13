@@ -1,22 +1,32 @@
 import {
-  ChangeEvent,
+  useState,
+  useEffect,
+  useRef,
   CompositionEvent,
   KeyboardEvent,
   SyntheticEvent,
-  useEffect,
-  useRef,
-  useState,
 } from "react";
+import ContentEditable from "react-contenteditable";
+import { PlusIcon } from "@heroicons/react/24/outline";
 
-import usePageListStore from "@/state/use-page-list-store";
+import Toolbar from "@/components/toolbar";
+
+import {
+  focusContentEditableTextToEnd,
+  focusContentEditableTextToStart,
+} from "@/utils/focus";
+import { getCursorPosition } from "@/utils/cursor";
+import usePageListStore, { ContentType } from "@/state/use-page-list-store";
+import useToolbarStore from "@/state/use-toolbar-store";
 
 const Content = () => {
   const [contentCursor, setContentCursor] = useState<{
     index: number;
-    direction: "start" | "end";
+    direction: "start" | "end" | "none";
   }>({ index: -1, direction: "end" });
+
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement | any>(null);
 
   const {
     pageId,
@@ -28,63 +38,112 @@ const Content = () => {
   } = usePageListStore();
   const currentPage = getCurrentPage();
 
+  const { setSelectionCoordinates, bold, restore } = useToolbarStore();
+
   useEffect(() => {
     focusContentEditableTextToEnd(titleRef?.current as HTMLElement);
+    setContentCursor({ index: -1, direction: "end" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageId]);
 
   useEffect(() => {
     if (contentRef.current && contentCursor.index > -1) {
+      // contentRef.current?.focus();
+
+      if (contentCursor.direction === "none") {
+        return;
+      }
+
       if (contentCursor.direction === "start") {
         focusContentEditableTextToStart(contentRef.current);
-      } else {
-        focusContentEditableTextToEnd(contentRef.current);
+        return;
       }
+
+      focusContentEditableTextToEnd(contentRef.current);
     }
   }, [contentCursor]);
 
-  const handleTitleChange = (e: ChangeEvent<HTMLHeadingElement>) => {
-    editTitle({
-      value: e.currentTarget.innerText,
-    });
+  useEffect(() => {
+    const handleMouseDown = () => {
+      const selection = window.getSelection();
 
-    focusContentEditableTextToEnd(e.currentTarget);
-  };
+      if (selection && selection.rangeCount > 0 && contentRef.current) {
+        const range = selection.getRangeAt(0);
+        const $section = document
+          .querySelector("#section")
+          ?.getBoundingClientRect();
+        const boundingRect = range.getBoundingClientRect();
+        const selectedElementParentTagName =
+          range.commonAncestorContainer.parentElement?.tagName;
 
-  const handleContentChange = (
-    e: SyntheticEvent<HTMLDivElement, InputEvent>,
-    field: string
+        if (range?.collapsed) {
+          setSelectionCoordinates({ top: 0, left: 0 });
+          return;
+        }
+
+        restore();
+
+        if (selectedElementParentTagName === "SPAN") {
+          bold();
+        }
+
+        setSelectionCoordinates({
+          top: Math.round(boundingRect.top - $section?.top!),
+          left: Math.round(boundingRect.left - $section?.left!),
+        });
+      }
+    };
+
+    document.addEventListener("selectionchange", handleMouseDown);
+
+    return () => {
+      document.removeEventListener("selectionchange", handleMouseDown);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleTitleChange = (
+    e: SyntheticEvent<HTMLHeadingElement, InputEvent>
   ) => {
     if (e.nativeEvent.isComposing) {
       return;
     }
-    editContent({
-      field: field,
+    editTitle({
       value: e.currentTarget.innerText,
     });
     focusContentEditableTextToEnd(e.currentTarget);
   };
 
-  const handleCompositionEnd = (
-    e: CompositionEvent<HTMLDivElement>,
-    field: string
-  ) => {
-    editContent({
-      field: field,
+  const handleTitleCompositionEnd = (e: CompositionEvent<HTMLDivElement>) => {
+    editTitle({
       value: e.currentTarget.innerText,
     });
     focusContentEditableTextToEnd(e.currentTarget);
   };
 
   const handleTitleKeyDown = (e: KeyboardEvent<HTMLHeadingElement>) => {
-    if (e.key === "Tab") {
-      e.preventDefault();
-      setContentCursor({ index: 0, direction: "end" });
+    switch (e.key) {
+      case "Enter":
+        e.preventDefault();
+        setContentCursor({ index: 0, direction: "end" });
+        break;
+
+      case "Tab":
+        e.preventDefault();
+        setContentCursor({ index: 0, direction: "end" });
+        break;
+
+      case "ArrowDown":
+        e.preventDefault();
+        setContentCursor({ index: 0, direction: "end" });
+
+      default:
+        break;
     }
   };
 
   const handleContentKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const selection = window.getSelection();
-    const range = selection?.getRangeAt(0);
 
     switch (e.key) {
       case "Enter":
@@ -94,12 +153,22 @@ const Content = () => {
           index: prev.index + 1,
           direction: "end",
         }));
-        contentRef.current?.focus();
+
         break;
 
       case "Backspace":
+        const isFirstLine =
+          contentCursor.index === 0 && currentPage?.contents?.[0]?.text === "";
+
+        if (isFirstLine) {
+          e.preventDefault();
+          setContentCursor({ index: -1, direction: "end" });
+          focusContentEditableTextToEnd(titleRef?.current as HTMLElement);
+          return;
+        }
+
         if (
-          (currentPage?.contents as any)?.length > 1 &&
+          (currentPage?.contents as ContentType[])?.length > 1 &&
           currentPage?.contents?.[contentCursor.index]?.text === ""
         ) {
           e.preventDefault();
@@ -108,12 +177,18 @@ const Content = () => {
             index: prev.index - 1,
             direction: "end",
           }));
+
           focusContentEditableTextToEnd(contentRef?.current as HTMLElement);
         }
         break;
 
       case "ArrowUp":
         if (contentCursor.index === 0) {
+          focusContentEditableTextToEnd(titleRef?.current as HTMLElement);
+          setContentCursor({
+            index: -1,
+            direction: "end",
+          });
           return;
         }
         setContentCursor((prev) => ({
@@ -130,6 +205,7 @@ const Content = () => {
         ) {
           return;
         }
+
         setContentCursor((prev) => ({
           index: prev.index + 1,
           direction: "end",
@@ -148,10 +224,15 @@ const Content = () => {
             index: prev.index - 1,
             direction: "end",
           }));
+          focusContentEditableTextToEnd(contentRef?.current as HTMLElement);
         }
         break;
 
       case "ArrowRight":
+        const cursorPosition = getCursorPosition(
+          contentRef?.current as HTMLElement
+        );
+
         if (
           contentCursor.index ===
           (currentPage?.contents?.length as number) - 1
@@ -159,10 +240,7 @@ const Content = () => {
           return;
         }
 
-        if (
-          range?.endContainer.textContent &&
-          (range?.endOffset || 0) >= range?.endContainer.textContent.length
-        ) {
+        if (cursorPosition === contentRef?.current?.innerText.length) {
           e.preventDefault();
           setContentCursor((prev) => ({
             index: prev.index + 1,
@@ -171,42 +249,41 @@ const Content = () => {
         }
         break;
 
+      case "Tab":
+        if (
+          contentCursor.index ===
+          (currentPage?.contents?.length as number) - 1
+        ) {
+          return;
+        }
+
+        e.preventDefault();
+        setContentCursor((prev) => ({
+          index: prev.index + 1,
+          direction: "end",
+        }));
+        focusContentEditableTextToEnd(contentRef?.current as HTMLElement);
+        break;
+
       default:
         break;
     }
   };
 
-  function focusContentEditableTextToEnd(element: HTMLElement | null) {
-    if (element === null || element.innerText.length === 0) {
-      element?.focus();
-      return;
-    }
-
-    const selection = window.getSelection();
-    const newRange = document.createRange();
-    newRange.selectNodeContents(element);
-    newRange.collapse(false);
-    selection?.removeAllRanges();
-    selection?.addRange(newRange);
-  }
-
-  function focusContentEditableTextToStart(element: HTMLElement | null) {
-    if (element === null || element.innerText.length === 0) {
-      element?.focus();
-      return;
-    }
-
-    const selection = window.getSelection();
-    const newRange = document.createRange();
-
-    newRange.setStart(element.firstChild || element, 0);
-    newRange.collapse(true);
-    selection?.removeAllRanges();
-    selection?.addRange(newRange);
-  }
+  const handleAddNewLine = (index: number) => {
+    addContentLine(index);
+    setContentCursor(() => ({
+      index: index + 1,
+      direction: "end",
+    }));
+    contentRef.current?.focus();
+  };
 
   return (
-    <section className="flex flex-col gap-2 w-full max-w-[708px]">
+    <section
+      id="section"
+      className="relative flex flex-col gap-2 w-full max-w-[708px]"
+    >
       <div className="flex flex-col-reverse h-[166px]">
         <h1
           className="content-header min-h-[54px] p-1 text-4xl hover:cursor-text"
@@ -214,36 +291,66 @@ const Content = () => {
           contentEditable
           suppressContentEditableWarning
           ref={titleRef}
-          onInput={(e: ChangeEvent<HTMLHeadingElement>) => handleTitleChange(e)}
+          onInput={(e: SyntheticEvent<HTMLHeadingElement, InputEvent>) =>
+            handleTitleChange(e)
+          }
           onKeyDown={(e) => handleTitleKeyDown(e)}
+          onCompositionEnd={(e) => handleTitleCompositionEnd(e)}
+          onClick={() => setContentCursor({ index: -1, direction: "end" })}
         >
           {currentPage?.title}
         </h1>
       </div>
 
-      <div className="p-1 px-2">
+      <div className="flex flex-col gap-1">
         {currentPage?.contents?.map((content, i) => {
           return (
             <div
-              key={`${content.id}_${i}`}
-              className="p-1 hover:cursor-text"
-              data-text="내용을 입력해주세요."
-              tabIndex={0}
-              contentEditable
-              suppressContentEditableWarning
-              ref={i === contentCursor.index ? contentRef : null}
-              onInput={(e: SyntheticEvent<HTMLDivElement, InputEvent>) =>
-                handleContentChange(e, content.id)
-              }
-              onKeyDown={(e) => handleContentKeyDown(e)}
-              onCompositionEnd={(e) => handleCompositionEnd(e, content.id)}
-              onClick={() => setContentCursor({ index: i, direction: "end" })}
+              key={`content_line_${content.id}_${i}`}
+              className={`relative group/contentLine`}
             >
-              {content.text}
+              <div
+                className={`absolute top-0 left-[-28px] flex items-center h-8 invisible group-hover/contentLine:visible`}
+              >
+                <button
+                  type="button"
+                  className="flex items-center justify-center w-7 h-7 p-1 rounded hover:bg-gray-100"
+                  onClick={() => handleAddNewLine(i)}
+                >
+                  <PlusIcon className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <ContentEditable
+                className="p-1 hover:cursor-text"
+                data-id={content.id}
+                tabIndex={0}
+                contentEditable
+                suppressContentEditableWarning
+                innerRef={i === contentCursor.index ? contentRef : undefined}
+                html={content.text}
+                onChange={(e) => {
+                  editContent({
+                    field: content.id,
+                    value: e.target.value,
+                  });
+                }}
+                onFocus={() => {
+                  if (contentCursor.index !== i) {
+                    setContentCursor({
+                      index: i,
+                      direction: "none",
+                    });
+                  }
+                }}
+                onKeyDown={(e) => handleContentKeyDown(e)}
+              />
             </div>
           );
         })}
       </div>
+
+      <Toolbar contentRef={contentRef} />
     </section>
   );
 };

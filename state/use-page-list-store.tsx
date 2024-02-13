@@ -1,14 +1,15 @@
 import { create } from "zustand";
+import cloneDeep from "lodash.clonedeep";
 
 import { makeRandomId } from "@/utils/random-id";
 
 export interface Page {
   id: string;
   title: string;
-  contents: Content[];
+  contents: ContentType[];
 }
 
-type Content = { id: string; text: string };
+export type ContentType = { id: string; type?: "heading1"; text: string };
 
 type CreatePageParams = Omit<Page, "id">;
 
@@ -23,6 +24,7 @@ interface UsePageListStoreProps {
   initPageId: () => void;
   editTitle: ({ value }: { value: string }) => void;
   editContent: ({ field, value }: { field: string; value: string }) => void;
+  editContentType: ({ value }: { value: "heading1" }) => void;
   addContentLine: (currentIndex: number) => void;
   removeContentLine: (currentIndex: number) => void;
 }
@@ -62,7 +64,7 @@ const usePageListStore = create<UsePageListStoreProps>()((set, get) => ({
 
   editTitle: ({ value }) => {
     set((state) => {
-      const clone = JSON.parse(JSON.stringify(state.pageList));
+      const clone = cloneDeep(state.pageList);
       const index = clone.findIndex((item: Page) => item.id === state.pageId);
       clone[index].title = value;
 
@@ -71,39 +73,57 @@ const usePageListStore = create<UsePageListStoreProps>()((set, get) => ({
   },
   editContent: ({ field, value }) => {
     set((state) => {
-      const clone = JSON.parse(JSON.stringify(state.pageList));
-      const index = clone.findIndex((item: Page) => item.id === state.pageId);
-      const contentIndex = clone[index].contents.findIndex(
-        (content: Content) => content.id === field
+      const index = state.pageList.findIndex(
+        (item: Page) => item.id === state.pageId
+      );
+      const contentIndex = state.pageList[index].contents.findIndex(
+        (content: ContentType) => content.id === field
       );
 
-      clone[index].contents[contentIndex].text = value?.replace(/\n/g, "");
+      state.pageList[index].contents[contentIndex].text = value?.replace(
+        /\n/g,
+        ""
+      );
 
-      return { ...state, pageList: clone };
+      return state;
+    });
+  },
+  editContentType: ({ value }) => {
+    set((state) => {
+      const index = state.pageList.findIndex(
+        (item: Page) => item.id === state.pageId
+      );
+      const contentIndex = 0;
+
+      state.pageList[index].contents[contentIndex].type = value;
+
+      return state;
     });
   },
   addContentLine: (currentIndex) => {
     set((state) => {
-      const clone = JSON.parse(JSON.stringify(state.pageList));
-      const index = clone.findIndex((item: Page) => item.id === state.pageId);
+      const index = state.pageList.findIndex(
+        (item: Page) => item.id === state.pageId
+      );
       const id = makeRandomId();
 
-      clone[index].contents.splice(currentIndex + 1, 0, {
+      state.pageList[index].contents.splice(currentIndex + 1, 0, {
         id: `content_${id}`,
         text: "",
       });
 
-      return { ...state, pageList: clone };
+      return state;
     });
   },
   removeContentLine: (currentIndex) => {
     set((state) => {
-      const clone = JSON.parse(JSON.stringify(state.pageList));
-      const index = clone.findIndex((item: Page) => item.id === state.pageId);
+      const index = state.pageList.findIndex(
+        (item: Page) => item.id === state.pageId
+      );
 
-      clone[index].contents.splice(currentIndex, 1);
+      state.pageList[index].contents.splice(currentIndex, 1);
 
-      return { ...state, pageList: clone };
+      return state;
     });
   },
 }));

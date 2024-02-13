@@ -8,7 +8,7 @@ interface UseSideBarStoreProps {
 }
 
 const useSideBarStore = create<UseSideBarStoreProps>()((set) => ({
-  isOpen: false,
+  isOpen: true,
 
   open: () => set(() => ({ isOpen: true })),
   close: () => set(() => ({ isOpen: false })),
